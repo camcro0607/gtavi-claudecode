@@ -1,0 +1,19 @@
+{
+  "page": {"name": "YOUR PAGE", "handle": "@yourhandle", "platforms": ["tiktok", "shorts", "reels", "x"]},
+  "allowlist": [
+    {
+      "login": "streamer_login",
+      "display": "Streamer Name",
+      "credit": "@streamer_handle",
+      "campaign": "Campaign name from campaigns.md (or 'permission: <where you got it>')",
+      "rules": "campaigns.md",
+      "hashtags": ["#gta6"]
+    }
+  ],
+  "topic_keywords": ["gta", "grand theft"],
+  "limits": {"vods_per_streamer": 2, "chunk_minutes": 60, "max_chunks_per_vod": 6, "max_age_hours": 72,
+             "picks_per_chunk": 3, "queue_max": 25, "moments_top": 8},
+  "schedule": {"window": "23:00-07:00", "idle_minutes": 10},
+  "llm": {"backend": "ollama", "model": "qwen2.5:7b-instruct", "host": "http://localhost:11434", "keep_alive": "0", "timeout": 180},
+  "cut": {"layout": "react", "title_style": "box", "captions": "bubble", "timeout": 1200}
+}

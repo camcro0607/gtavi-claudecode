@@ -6,3 +6,9 @@ test/
 *.wav
 *.ts
 !docs/*.mp4
+
+# workspace runtime data (when a workspace is created inside the repo)
+state.json
+.pipeline.lock
+approved/
+.pytest_cache/

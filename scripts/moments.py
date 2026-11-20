@@ -4,9 +4,9 @@ Signals per second: loudness spikes, YouTube "most replayed" heatmap, live-chat 
 (YouTube VOD chat replay or a TwitchDownloader chat.json) and hype words in the transcript.
 Writes jobs/<id>/candidates.md + candidates.json.
 
-usage: python moments.py <url-or-file> [--top 8] [--min 15] [--max 40] [--chat chat.json] [--max-minutes 90]
+usage: python moments.py <url-or-file> [--top 8] [--min 15] [--max 40] [--chat chat.json] [--max-minutes 90] [--start-min 0]
 """
-import argparse, json, math, re, sys, wave
+import argparse, json, math, os, re, sys, wave
 from pathlib import Path
 import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
@@ -16,7 +16,7 @@ HYPE = re.compile(r"\b(no way|oh my god|omg|what|wait|bro|let'?s go|holy|insane|
 CHAT_HYPE = re.compile(r"(LMAO|LOL|KEKW|OMEGALUL|W+\b|CLIP|💀|😂|🔥|NO WAY|HOLY)", re.I)
 
 
-def fetch(src, d, max_min):
+def fetch(src, d, max_min, start_min=0):
     info = {}
     if is_url(src):
         info = ytdlp_json(src)
@@ -26,8 +26,8 @@ def fetch(src, d, max_min):
         if not vid.exists():
             args = ytdlp_base() + ["-f", "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080]/b", "--merge-output-format", "mp4",
                                    "-o", str(vid)]
-            if (info.get("duration") or 0) > max_min * 60:
-                args += ["--download-sections", f"*0-{max_min * 60}"]
+            if start_min or (info.get("duration") or 0) > max_min * 60:
+                args += ["--download-sections", f"*{start_min * 60}-{(start_min + max_min) * 60}"]
             run(args + [src])
         if info.get("was_live") and not (d / "chat.json").exists():  # YouTube chat replay
             run(ytdlp_base() + ["--skip-download", "--write-subs", "--sub-langs", "live_chat", "-o", str(d / "chat"), src], check=False)
@@ -62,7 +62,7 @@ def transcribe(wav, d):
         pcm = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768
 
     def run_on(device):
-        model = WhisperModel("small", device=device, compute_type="float16" if device == "cuda" else "int8")
+        model = WhisperModel(os.environ.get("CLIP_DESK_WHISPER", "small"), device=device, compute_type="float16" if device == "cuda" else "int8")
         segs, _ = model.transcribe(pcm, word_timestamps=True, vad_filter=True)
         return [{"w": w.word.strip(), "s": round(w.start, 2), "e": round(w.end, 2)} for s in segs for w in (s.words or [])]
     try:
@@ -115,9 +115,10 @@ def main():
     ap.add_argument("src"); ap.add_argument("--top", type=int, default=8)
     ap.add_argument("--min", type=float, default=15); ap.add_argument("--max", type=float, default=40)
     ap.add_argument("--chat"); ap.add_argument("--max-minutes", type=int, default=90)
+    ap.add_argument("--start-min", type=int, default=0, help="start this many minutes into a long VOD (overnight chunking)")
     a = ap.parse_args()
-    d = job_dir(a.src)
-    vid, info = fetch(a.src, d, a.max_minutes)
+    d = job_dir(a.src + (f"#{a.start_min}" if a.start_min else ""))
+    vid, info = fetch(a.src, d, a.max_minutes, a.start_min)
     dur = float(ffprobe(vid)["format"]["duration"])
     wav, db = audio_rms(vid, d)
     n = len(db)

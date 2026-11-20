@@ -72,6 +72,32 @@ No income is promised. Your result depends on speed, picks and hooks, and the sc
 
 Nothing is uploaded automatically. You approve every post.
 
+## Automated pipeline (fork additions)
+
+Two ways to use this repo now. The original skills run interactively in Claude Code. The pipeline runs **unattended**, mostly overnight, and leaves you one review step.
+
+```
+01-discover -> 02-moments -> 03-pick -> 04-cut -> 05-gate -> 06-review (you) -> 07-learn
+ allowlist     Whisper+score  Ollama     ffmpeg    rules      approve/reject    real numbers
+```
+
+It follows the [Interpretable Context Methodology](https://github.com/RinDig/Interpretable-Context-Methodology): numbered stage folders, a `CONTEXT.md` in each, plain files as the hand-off, one agent reading only the current stage. Scripts do the heavy work (no tokens); a local Ollama model picks and titles moments; Claude Code is used for setup, the morning review and the weekly learning pass.
+
+```
+python scripts/init_desk.py C:\clipdesk          # workspace with stage folders + config\desk.json
+# edit config\desk.json: your allowlist (streamer, credit handle, campaign/permission), Ollama model
+set CLIP_DESK_HOME=C:\clipdesk
+python scripts/pipeline.py status
+python scripts/pipeline.py source <twitch vod url> --login <streamer>    # one source, all stages
+python scripts/pipeline.py run                                            # everything new, now
+python scripts/review.py list                                             # your one daily step
+python scripts/review.py approve <id>   |   reject <id> --why "..."   |   posted <id> --platform tiktok --url ...
+```
+
+Overnight on Windows: edit and register `scripts/windows/run_overnight.cmd` with `scripts/windows/install_task.ps1`. It runs inside the window in `schedule.window` (default 23:00-07:00 local time), stops when the window ends, and pauses if you touch the PC (`idle_minutes`). Set `CLIP_DESK_ENCODER=h264_nvenc` to render on the GPU.
+
+Safety built in: only allowlisted creators are ever downloaded or clipped, the creator credit is added to the caption by code, a gate blocks anything that fails campaign rules or banned-term checks, and nothing is uploaded.
+
 ## Hard rules
 
 No leaks, no "play early" or "free download" posts, no piracy, no GTA Online money or AFK bots, no fake news, never pretends to be Rockstar. Every fact needs an official source.
