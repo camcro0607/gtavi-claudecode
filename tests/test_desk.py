@@ -34,13 +34,16 @@ def test_daytime_window_and_always():
         desk.parse_window("nonsense")
 
 
-def test_may_run_idle_gate():
+def test_may_run_idle_gate(monkeypatch):
+    monkeypatch.setattr(desk, "idle_seconds", lambda: None)  # do not read the real keyboard/mouse (Windows would)
     c = cfg()
     night = datetime(2026, 11, 20, 1, 0)
     assert desk.may_run(c, now=night, idle=3600)[0]
     ok, why = desk.may_run(c, now=night, idle=60)  # used the PC 1 minute ago
     assert not ok and "in use" in why
-    assert desk.may_run(c, now=night, idle=None)[0]  # unknown idle (non-Windows) does not block
+    assert desk.may_run(c, now=night, idle=None)[0]  # idle cannot be measured -> does not block
+    monkeypatch.setattr(desk, "idle_seconds", lambda: 30.0)  # measured: used the PC 30 s ago
+    assert not desk.may_run(c, now=night, idle=None)[0]
     assert not desk.may_run(c, now=datetime(2026, 11, 20, 14, 0), idle=9999)[0]
     assert desk.may_run(c, now=datetime(2026, 11, 20, 14, 0), idle=0, ignore_window=True, ignore_idle=True)[0]
 
